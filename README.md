@@ -2,6 +2,10 @@
 
 This is a starter template for creating Roblox games with Lua scripts.
 
+## 🎮 Live Demo
+
+**[Play the Web Prototype Here!](https://futurexskill.github.io/roblox/prototype/)**
+
 ## Project Structure
 
 - `/src/server/` - Server-side scripts (ServerScriptService)
