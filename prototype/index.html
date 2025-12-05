@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roblox Game Prototype</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            overflow: hidden;
+            color: white;
+        }
+
+        #gameContainer {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #canvas {
+            display: block;
+            background: linear-gradient(to bottom, #87CEEB 0%, #98D8E8 100%);
+            cursor: crosshair;
+        }
+
+        #ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        #coinCounter {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            background: rgba(35, 35, 35, 0.9);
+            padding: 15px 20px;
+            border-radius: 10px;
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        #coinIcon {
+            font-size: 30px;
+        }
+
+        #statusLabel {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(45, 45, 45, 0.9);
+            padding: 12px 30px;
+            border-radius: 10px;
+            font-size: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        #leaderboard {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(35, 35, 35, 0.9);
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 200px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        #leaderboard h3 {
+            margin-bottom: 10px;
+            color: #FFD700;
+            border-bottom: 2px solid #FFD700;
+            padding-bottom: 5px;
+        }
+
+        .leaderboard-entry {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 0;
+            font-size: 14px;
+        }
+
+        #instructions {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px 30px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        #instructions p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .player {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #FF6B6B;
+            border-radius: 50%;
+            border: 3px solid #333;
+            transition: all 0.1s;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .coin {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #FFD700 0%, #FFA500 100%);
+            border-radius: 50%;
+            border: 2px solid #FFD700;
+            animation: spin 2s linear infinite, float 1s ease-in-out infinite;
+            box-shadow: 0 0 10px rgba(255, 215, 0, 0.5);
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.1); }
+            to { transform: rotate(360deg) scale(1); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+        }
+
+        #gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px 60px;
+            border-radius: 20px;
+            text-align: center;
+            display: none;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        #gameOver h2 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #FFD700;
+        }
+
+        #gameOver button {
+            margin-top: 20px;
+            padding: 12px 30px;
+            font-size: 18px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            pointer-events: all;
+            transition: all 0.3s;
+        }
+
+        #gameOver button:hover {
+            background: #764ba2;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="canvas"></canvas>
+        <div id="ui">
+            <div id="coinCounter">
+                <span id="coinIcon">🪙</span>
+                <span id="coinCount">0 Coins</span>
+            </div>
+            <div id="statusLabel">Collect coins to win!</div>
+            <div id="leaderboard">
+                <h3>🏆 Leaderboard</h3>
+                <div id="leaderboardList"></div>
+            </div>
+            <div id="instructions">
+                <p><strong>Controls:</strong> Use Arrow Keys or WASD to move</p>
+                <p>Collect 🪙 coins to increase your score!</p>
+                <p>Game Duration: <span id="timer">5:00</span></p>
+            </div>
+            <div id="gameOver">
+                <h2>🎮 Game Over!</h2>
+                <p id="finalScore"></p>
+                <p id="winnerText"></p>
+                <button onclick="restartGame()">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Canvas setup
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        // Game state
+        let gameState = 'Playing';
+        let gameTime = 300; // 5 minutes in seconds
+        let player = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            radius: 15,
+            speed: 5,
+            coins: 0,
+            color: '#FF6B6B'
+        };
+
+        let keys = {};
+        let coins = [];
+        let bots = [];
+        const MAX_COINS = 20;
+        const COIN_VALUE = 10;
+        const NUM_BOTS = 3;
+
+        // Bot colors
+        const botColors = ['#4ECDC4', '#95E1D3', '#F38181', '#AA96DA'];
+
+        // Initialize game
+        function init() {
+            // Create bots
+            for (let i = 0; i < NUM_BOTS; i++) {
+                bots.push({
+                    name: `Bot ${i + 1}`,
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: 15,
+                    speed: 3 + Math.random() * 2,
+                    coins: 0,
+                    color: botColors[i],
+                    targetCoin: null
+                });
+            }
+
+            spawnCoins();
+            startGameLoop();
+            startTimer();
+        }
+
+        // Spawn coins
+        function spawnCoins() {
+            while (coins.length < MAX_COINS) {
+                coins.push({
+                    x: Math.random() * (canvas.width - 40) + 20,
+                    y: Math.random() * (canvas.height - 100) + 50,
+                    radius: 10
+                });
+            }
+        }
+
+        // Input handling
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+        });
+
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+        });
+
+        // Update player position
+        function updatePlayer() {
+            if (keys['arrowup'] || keys['w']) player.y -= player.speed;
+            if (keys['arrowdown'] || keys['s']) player.y += player.speed;
+            if (keys['arrowleft'] || keys['a']) player.x -= player.speed;
+            if (keys['arrowright'] || keys['d']) player.x += player.speed;
+
+            // Boundary checking
+            player.x = Math.max(player.radius, Math.min(canvas.width - player.radius, player.x));
+            player.y = Math.max(player.radius, Math.min(canvas.height - player.radius, player.y));
+        }
+
+        // Update bots (AI)
+        function updateBots() {
+            bots.forEach(bot => {
+                // Find nearest coin
+                if (!bot.targetCoin || !coins.includes(bot.targetCoin)) {
+                    bot.targetCoin = findNearestCoin(bot);
+                }
+
+                if (bot.targetCoin) {
+                    const dx = bot.targetCoin.x - bot.x;
+                    const dy = bot.targetCoin.y - bot.y;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance > 2) {
+                        bot.x += (dx / distance) * bot.speed;
+                        bot.y += (dy / distance) * bot.speed;
+                    }
+                }
+
+                // Boundary checking
+                bot.x = Math.max(bot.radius, Math.min(canvas.width - bot.radius, bot.x));
+                bot.y = Math.max(bot.radius, Math.min(canvas.height - bot.radius, bot.y));
+
+                // Check coin collision
+                checkCoinCollision(bot);
+            });
+        }
+
+        // Find nearest coin
+        function findNearestCoin(entity) {
+            let nearest = null;
+            let minDistance = Infinity;
+
+            coins.forEach(coin => {
+                const dx = coin.x - entity.x;
+                const dy = coin.y - entity.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearest = coin;
+                }
+            });
+
+            return nearest;
+        }
+
+        // Check coin collision
+        function checkCoinCollision(entity) {
+            coins.forEach((coin, index) => {
+                const dx = coin.x - entity.x;
+                const dy = coin.y - entity.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
+
+                if (distance < entity.radius + coin.radius) {
+                    entity.coins += COIN_VALUE;
+                    coins.splice(index, 1);
+                    spawnCoins();
+                    updateUI();
+                }
+            });
+        }
+
+        // Draw everything
+        function draw() {
+            // Clear canvas
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw ground
+            ctx.fillStyle = '#90EE90';
+            ctx.fillRect(0, canvas.height - 50, canvas.width, 50);
+
+            // Draw coins
+            coins.forEach(coin => {
+                ctx.beginPath();
+                ctx.arc(coin.x, coin.y, coin.radius, 0, Math.PI * 2);
+                ctx.fillStyle = '#FFD700';
+                ctx.fill();
+                ctx.strokeStyle = '#FFA500';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // Coin shine
+                ctx.beginPath();
+                ctx.arc(coin.x - 3, coin.y - 3, 3, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+                ctx.fill();
+            });
+
+            // Draw bots
+            bots.forEach(bot => {
+                ctx.beginPath();
+                ctx.arc(bot.x, bot.y, bot.radius, 0, Math.PI * 2);
+                ctx.fillStyle = bot.color;
+                ctx.fill();
+                ctx.strokeStyle = '#333';
+                ctx.lineWidth = 3;
+                ctx.stroke();
+
+                // Bot name
+                ctx.fillStyle = 'white';
+                ctx.font = '12px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillText(bot.name, bot.x, bot.y - 25);
+            });
+
+            // Draw player
+            ctx.beginPath();
+            ctx.arc(player.x, player.y, player.radius, 0, Math.PI * 2);
+            ctx.fillStyle = player.color;
+            ctx.fill();
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // Player label
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 14px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillText('YOU', player.x, player.y - 25);
+        }
+
+        // Update UI
+        function updateUI() {
+            document.getElementById('coinCount').textContent = player.coins + ' Coins';
+            updateLeaderboard();
+        }
+
+        // Update leaderboard
+        function updateLeaderboard() {
+            const allPlayers = [{ name: 'You', coins: player.coins }, ...bots];
+            allPlayers.sort((a, b) => b.coins - a.coins);
+
+            const leaderboardList = document.getElementById('leaderboardList');
+            leaderboardList.innerHTML = '';
+
+            allPlayers.slice(0, 5).forEach((p, index) => {
+                const entry = document.createElement('div');
+                entry.className = 'leaderboard-entry';
+                entry.innerHTML = `
+                    <span>${index + 1}. ${p.name}</span>
+                    <span>${p.coins}</span>
+                `;
+                leaderboardList.appendChild(entry);
+            });
+        }
+
+        // Timer
+        function startTimer() {
+            const timerInterval = setInterval(() => {
+                if (gameState !== 'Playing') {
+                    clearInterval(timerInterval);
+                    return;
+                }
+
+                gameTime--;
+                const minutes = Math.floor(gameTime / 60);
+                const seconds = gameTime % 60;
+                document.getElementById('timer').textContent = 
+                    `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+                if (gameTime <= 0) {
+                    endGame();
+                    clearInterval(timerInterval);
+                }
+            }, 1000);
+        }
+
+        // Game loop
+        function startGameLoop() {
+            function gameLoop() {
+                if (gameState === 'Playing') {
+                    updatePlayer();
+                    updateBots();
+                    checkCoinCollision(player);
+                    draw();
+                }
+                requestAnimationFrame(gameLoop);
+            }
+            gameLoop();
+        }
+
+        // End game
+        function endGame() {
+            gameState = 'Ended';
+            const allPlayers = [{ name: 'You', coins: player.coins }, ...bots];
+            allPlayers.sort((a, b) => b.coins - a.coins);
+            
+            const winner = allPlayers[0];
+            const gameOverDiv = document.getElementById('gameOver');
+            document.getElementById('finalScore').textContent = `Your Score: ${player.coins} coins`;
+            document.getElementById('winnerText').textContent = 
+                winner.name === 'You' ? '🎉 You Win! 🎉' : `Winner: ${winner.name} (${winner.coins} coins)`;
+            gameOverDiv.style.display = 'block';
+        }
+
+        // Restart game
+        function restartGame() {
+            location.reload();
+        }
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Start the game
+        init();
+    </script>
+</body>
+</html>
